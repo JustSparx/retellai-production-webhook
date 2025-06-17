@@ -1,0 +1,26 @@
+{
+  "name": "retellai-emergency-webhook",
+  "version": "1.0.0",
+  "description": "Production webhook for processing RetellAI emergency tool calls and logging to Airtable",
+  "main": "webhook.js",
+  "scripts": {
+    "start": "node webhook.js",
+    "dev": "node webhook.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "retellai",
+    "webhook",
+    "airtable",
+    "emergency",
+    "property-management"
+  ],
+  "author": "sparx & brother collaboration",
+  "license": "MIT"
+}
