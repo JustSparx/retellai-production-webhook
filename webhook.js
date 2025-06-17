@@ -13,6 +13,36 @@ const AFTERHOURS_TABLE_NAME = process.env.AFTERHOURS_TABLE_NAME || 'AfterHoursCa
 // Construct Airtable API URL
 const afterhoursAirtableURL = `https://api.airtable.com/v0/${BASE_ID}/${AFTERHOURS_TABLE_NAME}`;
 
+// Utility function to format phone numbers for Airtable
+function formatPhoneNumber(phone) {
+    if (!phone) return 'No callback number';
+    
+    // Convert to string and remove all non-digits
+    const digits = String(phone).replace(/\D/g, '');
+    
+    // Format as (XXX) XXX-XXXX for US numbers
+    if (digits.length === 10) {
+        return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+    }
+    
+    // Format as +1 (XXX) XXX-XXXX for 11-digit numbers starting with 1
+    if (digits.length === 11 && digits[0] === '1') {
+        const tenDigits = digits.slice(1);
+        return `+1 (${tenDigits.slice(0,3)}) ${tenDigits.slice(3,6)}-${tenDigits.slice(6)}`;
+    }
+    
+    // Return as-is if not standard US format, but ensure it's a string
+    return String(phone);
+}
+
+// Utility function to ensure all data is properly formatted for Airtable
+function sanitizeForAirtable(value, defaultValue = 'Unknown') {
+    if (value === null || value === undefined || value === '') {
+        return defaultValue;
+    }
+    return String(value).trim();
+}
+
 // Tool call handler for emergency logging
 app.post('/emergency-webhook', async (req, res) => {
     console.log('📞 Emergency webhook received:', JSON.stringify(req.body, null, 2));
@@ -32,21 +62,22 @@ app.post('/emergency-webhook', async (req, res) => {
             });
         }
 
-        // Extract emergency data from args
+        // Extract and sanitize emergency data from args
         const timestamp = new Date().toISOString();
-        const callerName = args.caller || 'Unknown Caller';
-        const propertyName = args.address_of_emergency || 'Unknown Property';
-        const managerName = args.property_manager || 'Unknown Manager';
-        const companyName = args.company_name || 'Unknown Company';
-        const emergencyType = args.emergency_type || 'Unknown Emergency';
-        const transcript = args.call_transcription || 'No transcript available';
-        const callbackNumber = args.callback_number || 'No callback number';
+        const callerName = sanitizeForAirtable(args.caller, 'Unknown Caller');
+        const propertyName = sanitizeForAirtable(args.address_of_emergency, 'Unknown Property');
+        const managerName = sanitizeForAirtable(args.property_manager, 'Unknown Manager');
+        const companyName = sanitizeForAirtable(args.company_name, 'Unknown Company');
+        const emergencyType = sanitizeForAirtable(args.emergency_type, 'Unknown Emergency');
+        const transcript = sanitizeForAirtable(args.call_transcription, 'No transcript available');
+        const callbackNumber = formatPhoneNumber(args.callback_number);
 
         console.log(`🚨 Processing emergency:`, {
             caller: callerName,
             emergency: emergencyType,
             property: propertyName,
-            manager: managerName
+            manager: managerName,
+            formattedPhone: callbackNumber
         });
 
         // Validate required data
