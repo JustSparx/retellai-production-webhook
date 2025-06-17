@@ -121,12 +121,15 @@ app.post('/emergency-webhook', async (req, res) => {
         return res.status(200).json({
             success: true,
             record_id: recordId,
-            message: "Emergency logged to AfterHoursCallLog",
+            message: "Emergency logged successfully",
+            logged: true,
             processed_data: {
                 caller: callerName,
                 emergency_type: emergencyType,
                 property: propertyName,
-                manager: managerName
+                manager: managerName,
+                callback_number: callbackNumber,
+                logged_at: timestamp
             }
         });
 
@@ -139,7 +142,10 @@ app.post('/emergency-webhook', async (req, res) => {
         }
 
         return res.status(500).json({ 
+            success: false,
+            logged: false,
             error: 'Failed to log emergency', 
+            message: "Emergency logging failed",
             details: error.response?.data || error.message 
         });
     }
