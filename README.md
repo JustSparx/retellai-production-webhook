@@ -66,12 +66,147 @@ The webhook writes to the `AfterHoursCallLog` table with these fields:
 
 ## Deployment
 
-### Render.com
+### Render.com Deployment Guide
 
-1. Connect this GitHub repository to Render
-2. Create a new Web Service
-3. Set environment variables in Render dashboard
-4. Deploy
+#### Step 1: Repository Setup
+1. **Push this repository to GitHub** (if not already done)
+2. **Log into Render.com** and connect your GitHub account
+
+#### Step 2: Create Web Service
+1. Click **"New +"** → **"Web Service"**
+2. **Connect Repository**: Select this GitHub repository
+3. **Service Configuration**:
+   - **Name**: `retellai-emergency-webhook` (or your preferred name)
+   - **Environment**: `Node`
+   - **Region**: Choose closest to your users
+   - **Branch**: `main` (or your default branch)
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+
+#### Step 3: Environment Variables
+In the Render dashboard, add these environment variables:
+
+```bash
+# Required: Your Airtable Personal Access Token
+AIRTABLE_TOKEN=your_airtable_personal_access_token_here
+
+# Required: Your Airtable Base ID
+BASE_ID=your_airtable_base_id_here
+
+# Optional: Table name (defaults to AfterHoursCallLog)
+AFTERHOURS_TABLE_NAME=AfterHoursCallLog
+
+# Optional: Port (Render automatically sets this)
+PORT=3000
+```
+
+#### Step 4: Getting Airtable Credentials
+
+##### Airtable Personal Access Token:
+1. Go to [Airtable Developer Hub](https://airtable.com/create/tokens)
+2. Click **"Create token"**
+3. **Name**: `RetellAI Emergency Webhook`
+4. **Scopes**: Select `data.records:write` and `data.records:read`
+5. **Access**: Choose your workspace and specific base
+6. **Copy the token** (starts with `pat...`)
+
+**Note**: Token format should look like: `patABC123XYZ.1234567890abcdef...`
+
+##### Airtable Base ID:
+1. Open your Airtable base
+2. Go to **Help** → **API Documentation**
+3. **Base ID** is shown at the top (starts with `app...`)
+
+#### Step 5: Deploy & Test
+1. **Deploy**: Click **"Create Web Service"** in Render
+2. **Wait for build**: Monitor build logs for any errors
+3. **Get webhook URL**: Copy your Render service URL
+4. **Test health endpoint**: Visit `https://your-service.onrender.com/health`
+
+#### Step 6: Verify Deployment
+Check the health endpoint response:
+```json
+{
+  "status": "OK",
+  "timestamp": "2025-06-17T...",
+  "endpoints": ["/emergency-webhook", "/health"],
+  "environment": {
+    "has_airtable_token": true,
+    "has_base_id": true,
+    "afterhours_table": "AfterHoursCallLog"
+  }
+}
+```
+
+All environment flags should be `true`.
+
+#### Step 7: Configure RetellAI
+1. **Webhook URL**: `https://your-service.onrender.com/emergency-webhook`
+2. **Tool Name**: `log-the-emergency`
+3. **Method**: `POST`
+4. **Test**: Make a test call to verify data flows to Airtable
+
+#### Step 8: Quick Test (Optional)
+Test your deployment with curl:
+```bash
+curl -X POST https://your-service.onrender.com/emergency-webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "log-the-emergency",
+    "args": {
+      "caller": "Test Caller",
+      "callback_number": "555-123-4567",
+      "emergency_type": "Test Emergency",
+      "address_of_emergency": "Test Property",
+      "property_manager": "Test Manager",
+      "company_name": "Test Company",
+      "call_transcription": "This is a test emergency call"
+    }
+  }'
+```
+
+**Expected response:**
+```json
+{
+  "success": true,
+  "record_id": "rec...",
+  "message": "Emergency logged to AfterHoursCallLog"
+}
+```
+
+Check your Airtable to verify the test record was created.
+
+### Troubleshooting
+
+#### Common Issues:
+
+**❌ "Missing environment variables"**
+- Verify all environment variables are set in Render dashboard
+- Check spelling of variable names
+- Ensure tokens don't have extra spaces
+
+**❌ "Airtable authentication failed"**
+- Verify Personal Access Token has correct scopes
+- Check Base ID is correct
+- Ensure token isn't expired
+
+**❌ "Field mapping errors"**
+- Verify Airtable table has all required fields
+- Check field names match exactly (case-sensitive):
+  - `Timestamp` (DateTime)
+  - `Caller Name` (Single line text)  
+  - `Property Name` (Single line text)
+  - `Manager Name` (Single line text)
+  - `Company Name` (Single line text)
+  - `Emergency Type` (Single line text)
+  - `Transcript` (Long text)
+  - `Callback Number` (Phone number)
+- Ensure field types are correct as listed above
+
+**❌ "Render build fails"**
+- Check Node.js version compatibility (requires 16+)
+- Verify package.json dependencies
+- Review build logs for specific errors
 
 ### Local Development
 
